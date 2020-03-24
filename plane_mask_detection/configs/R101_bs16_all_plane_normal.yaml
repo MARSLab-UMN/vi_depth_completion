@@ -1,0 +1,65 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
+  BACKBONE:
+    CONV_BODY: "R-101-FPN"
+    FREEZE_CONV_BODY_AT: 0
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 256
+  RPN:
+    USE_FPN: True
+    ANCHOR_STRIDE: (4, 8, 16, 32, 64)
+    PRE_NMS_TOP_N_TRAIN: 2000
+    PRE_NMS_TOP_N_TEST: 1000
+    POST_NMS_TOP_N_TEST: 50
+    FPN_POST_NMS_TOP_N_TEST: 50
+  ROI_HEADS:
+    USE_FPN: True
+  ROI_BOX_HEAD:
+    POOLER_RESOLUTION: 7
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+    POOLER_SAMPLING_RATIO: 2
+    FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
+    PREDICTOR: "FPNPredictor"
+    NUM_CLASSES: 2 #81
+  ROI_MASK_HEAD:
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+    FEATURE_EXTRACTOR: "MaskRCNNFPNFeatureExtractor"
+    PREDICTOR: "MaskRCNNC4Predictor"
+    POOLER_RESOLUTION: 14
+    POOLER_SAMPLING_RATIO: 2
+    RESOLUTION: 28
+    SHARE_BOX_FEATURE_EXTRACTOR: False
+  MASK_ON: True
+DATASETS:
+  TRAIN: ("coco_planemasks_all_train_split",) #("coco_framenet_train_200k_images", "coco_framenet_train_200k_images") ("coco_planenormal_0to1_train",)
+  TEST: ("first10scenes_coco_plane_masks_test_split",) # ("coco_framenet_val_60k_images",) #("coco_framenet_0to1_test",) #
+# Fixed size image during training and testing
+INPUT:
+   MIN_SIZE_TRAIN: (240,)
+   MAX_SIZE_TRAIN: 320
+   MIN_SIZE_TEST: 240
+   MAX_SIZE_TEST: 320
+DATALOADER:
+  SIZE_DIVISIBILITY: 32
+  NUM_WORKERS: 16
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.002
+  WEIGHT_DECAY: 0.0001
+  STEPS: (40000, 60000)
+  MAX_ITER: 200000
+  UNSUPERVISED:
+    PLANE_NORMAL: 0
+  SUPERVISED: "plane_normal" # "normal_only"
+  OUTPUT_REPRESENTATION: 5
+  # 0: estimate directly 3 values of normal vector w/o any particular constraints, follows by normalization, then L1 loss
+  # 1: estimate 2dof [tt, phi] only, then L1 loss
+  # 2: estimate 3 value of normal, applying tanh in the last layer (scale up to -1 .. 1), no normalization needed, then MSE loss
+  # 3: estimate 3 value of normal, applying hard-tanh in the last layer (scale up to -1 .. 1), no normalization needed, then MSE loss
+  # 4: estimate 2dof, followed by a periodic characteristic, then L1 loss
+TEST:
+  IMS_PER_BATCH: 16
+OUTPUT_DIR: ./checkpoints
+ # '/tiendo/mnt/dgx/PanopticFPN_results/R101_bs64_L2loss_3output_unnormalized/'
+ #'/tiendo/mnt/dgx/PanopticFPN_results/R101_bs128_Normal_640x480/'
